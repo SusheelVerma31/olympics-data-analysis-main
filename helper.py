@@ -43,21 +43,36 @@ def country_year_list(df):
 
 def data_over_time(df,col):
 
-    nations_over_time = df.drop_duplicates(['Year', col])['Year'].value_counts().reset_index().sort_values('index')
-    nations_over_time.rename(columns={'index': 'Edition', 'Year': col}, inplace=True)
+    # Drop duplicates based on 'Year' and the specified column and Count the number of occurrences of each year
+    nations_over_time = df.drop_duplicates(['Year', col])['Year'].value_counts().reset_index().sort_values(by = 'Year')
+
+    # Rename the columns appropriately
+    nations_over_time.columns = ['Edition', col]
+
     return nations_over_time
 
 
 def most_successful(df, sport):
-    temp_df = df.dropna(subset=['Medal'])
+    # Filter the DataFrame based on the selected sport
+    temp_df = df[df['Sport'] == sport]
 
-    if sport != 'Overall':
-        temp_df = temp_df[temp_df['Sport'] == sport]
+    # Count the number of occurrences of each Name
+    name_counts = temp_df.dropna(subset=['Medal'])['Name'].value_counts().reset_index()
 
-    x = temp_df['Name'].value_counts().reset_index().head(15).merge(df, left_on='index', right_on='Name', how='left')[
-        ['index', 'Name_x', 'Sport', 'region']].drop_duplicates('index')
-    x.rename(columns={'index': 'Name', 'Name_x': 'Medals'}, inplace=True)
-    return x
+    # Rename the columns to avoid the 'index' KeyError
+    name_counts.columns = ['Name', 'Count']
+
+    # Get the top 15 most successful names
+    top_names = name_counts.head(15)
+
+    # Merge the top names with the original DataFrame to get additional information
+    result = top_names.merge(df, left_on='Name', right_on='Name', how='left')
+
+    # Select only the 'Name', 'Count', 'Sport', and 'Region' columns
+    result = result[['Name', 'Count', 'Sport', 'region']].drop_duplicates()
+
+    return result
+
 
 def yearwise_medal_tally(df,country):
     temp_df = df.dropna(subset=['Medal'])
@@ -83,10 +98,23 @@ def most_successful_countrywise(df, country):
 
     temp_df = temp_df[temp_df['region'] == country]
 
-    x = temp_df['Name'].value_counts().reset_index().head(10).merge(df, left_on='index', right_on='Name', how='left')[
-        ['index', 'Name_x', 'Sport']].drop_duplicates('index')
-    x.rename(columns={'index': 'Name', 'Name_x': 'Medals'}, inplace=True)
-    return x
+    # Count the number of occurrences of each Name
+    name_counts = temp_df['Name'].value_counts().reset_index()
+
+    # Rename the columns to avoid the 'index' KeyError
+    name_counts.columns = ['Name', 'Medals']
+
+    # Get the top 10 most successful names
+    top_names = name_counts.head(10)
+
+    # Merge the top names with the original DataFrame to get additional information
+    result = top_names.merge(df, on='Name', how='left')
+
+    # Select only the 'Name', 'Count', 'Sport', and 'Region' columns and remove duplicates
+    result = result[['Name', 'Medals', 'Sport', 'region']].drop_duplicates()
+
+    return result.head(10)
+
 
 def weight_v_height(df,sport):
     athlete_df = df.drop_duplicates(subset=['Name', 'region'])
